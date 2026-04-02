@@ -24,6 +24,12 @@ runs:
       shell: bash
       run: npm install -g @github/copilot
 
+    - name: Run Copilot CLI
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        copilot -p "HI THERE"
     - name: Install dependencies
       shell: bash
       run: pip install -r "${{ github.action_path }}/requirements.txt"
