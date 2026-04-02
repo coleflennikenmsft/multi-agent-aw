@@ -60,11 +60,12 @@ async def _stream_agent(agent, message: str, label: str) -> str:
             for line in thoughts.splitlines():
                 print(f"[{label}][thought] {line}", flush=True)
 
-        # Tool calls the agent is making
-        tool_calls = getattr(chunk, "tool_calls", None) or []
-        for tc in tool_calls:
-            name = getattr(tc, "name", None) or getattr(tc, "function", {}).get("name", "?")
-            print(f"[{label}][tool] {name}", flush=True)
+        # Tool calls / results the agent is making (via chunk.contents)
+        for content in chunk.contents:
+            if content.type == "function_call":
+                print(f"[{label}][tool] {content.name}", flush=True)
+            elif content.type == "function_result":
+                print(f"[{label}][tool_result] call_id={content.call_id}", flush=True)
 
         # Streamed text output — collect and emit line-by-line so Actions
         # renders each line as a separate log entry instead of one giant blob.
