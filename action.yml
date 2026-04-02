@@ -28,7 +28,7 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ github.token }}
-        COPILOT_GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        COPILOT_GITHUB_TOKEN: ${{ env.PERSONAL_ACCESS_TOKEN }}
       run: |
         copilot -p "HI THERE"
     - name: Install dependencies
@@ -41,5 +41,5 @@ runs:
         INPUT_TASK: ${{ inputs.task }}
         # GITHUB_TOKEN is available automatically in the calling workflow.
         # The agent framework uses it to authenticate with GitHub Copilot.
-        COPILOT_GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        COPILOT_GITHUB_TOKEN: ${{ env.PERSONAL_ACCESS_TOKEN }}
       run: python "${{ github.action_path }}/src/main.py"
