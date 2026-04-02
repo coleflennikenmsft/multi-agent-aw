@@ -17,6 +17,64 @@ from agents.plan import createPlanner
 from agents.implement import createImplementer
 from agents.reviewer import createReviewer
 
+# When running inside GitHub Actions, os.environ["GITHUB_ACTIONS"] == "true".
+_IN_ACTIONS = os.environ.get("GITHUB_ACTIONS") == "true"
+
+
+def _group(title: str) -> None:
+    if _IN_ACTIONS:
+        print(f"::group::{title}", flush=True)
+    else:
+        print(f"\n=== {title} ===", flush=True)
+
+
+def _endgroup() -> None:
+    if _IN_ACTIONS:
+        print("::endgroup::", flush=True)
+
+
+async def _stream_agent(agent, message: str, label: str) -> str:
+    """Run *agent* with *message*, printing thoughts and text to the log.
+
+    Returns the final response text.
+    """
+    _group(f"{label} — thoughts & output")
+    buffer: list[str] = []
+    stream = agent.run(message, stream=True)
+    async for chunk in stream:
+        # Thoughts / reasoning (available when the model exposes them)
+        thoughts = getattr(chunk, "thoughts", None)
+        if thoughts:
+            for line in thoughts.splitlines():
+                print(f"[{label}][thought] {line}", flush=True)
+
+        # Tool calls the agent is making
+        tool_calls = getattr(chunk, "tool_calls", None) or []
+        for tc in tool_calls:
+            name = getattr(tc, "name", None) or getattr(tc, "function", {}).get("name", "?")
+            print(f"[{label}][tool] {name}", flush=True)
+
+        # Streamed text output — collect and emit line-by-line so Actions
+        # renders each line as a separate log entry instead of one giant blob.
+        if chunk.text:
+            buffer.append(chunk.text)
+            # Flush complete lines immediately
+            combined = "".join(buffer)
+            lines = combined.split("\n")
+            for line in lines[:-1]:
+                print(f"[{label}] {line}", flush=True)
+            buffer = [lines[-1]]  # keep the incomplete trailing fragment
+
+    # Flush any remaining text
+    if buffer:
+        remainder = "".join(buffer).strip()
+        if remainder:
+            print(f"[{label}] {remainder}", flush=True)
+
+    _endgroup()
+    response = await stream.get_final_response()
+    return response.text
+
 
 class PlannerExecutor(Executor):
     """Runs the planner agent to produce an implementation plan, then hands off to the implementer."""
@@ -28,15 +86,9 @@ class PlannerExecutor(Executor):
     async def handle(self, task: str, ctx: WorkflowContext[str]) -> None:
         print("[Planner] Creating implementation plan...")
         async with createPlanner() as agent:
-            stream = agent.run(task, stream=True)
-            print("[Planner] ", end="", flush=True)
-            async for chunk in stream:
-                if chunk.text:
-                    print(chunk.text, end="", flush=True)
-            print()
-            response = await stream.get_final_response()
+            result = await _stream_agent(agent, task, "Planner")
         print("[Planner] Plan created.")
-        await ctx.send_message(response.text)
+        await ctx.send_message(result)
 
 
 class ImplementerExecutor(Executor):
@@ -49,15 +101,9 @@ class ImplementerExecutor(Executor):
     async def handle(self, message: str, ctx: WorkflowContext[str]) -> None:
         print("[Implementer] Executing tasks from plan...")
         async with createImplementer() as agent:
-            stream = agent.run(message, stream=True)
-            print("[Implementer] ", end="", flush=True)
-            async for chunk in stream:
-                if chunk.text:
-                    print(chunk.text, end="", flush=True)
-            print()
-            response = await stream.get_final_response()
+            result = await _stream_agent(agent, message, "Implementer")
         print("[Implementer] Implementation complete.")
-        await ctx.send_message(response.text)
+        await ctx.send_message(result)
 
 
 class ReviewerExecutor(Executor):
@@ -75,14 +121,7 @@ class ReviewerExecutor(Executor):
     async def handle(self, message: str, ctx: WorkflowContext[str, str]) -> None:
         print("[Reviewer] Reviewing implementation...")
         async with createReviewer() as agent:
-            stream = agent.run(message, stream=True)
-            print("[Reviewer] ", end="", flush=True)
-            async for chunk in stream:
-                if chunk.text:
-                    print(chunk.text, end="", flush=True)
-            print()
-            response = await stream.get_final_response()
-        review_text = response.text
+            review_text = await _stream_agent(agent, message, "Reviewer")
         print("[Reviewer] Review complete.")
 
         if "IMPLEMENTATION INCOMPLETE" in review_text:
