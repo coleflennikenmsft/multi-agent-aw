@@ -1,0 +1,31 @@
+name: "Multi-Agent Plan/Implement/Review"
+description: "Runs a plan → implement → review agent workflow against the calling repo using GitHub Copilot."
+author: "coleflennikenmsft"
+
+inputs:
+  task:
+    description: "Natural-language description/specification of what the agents should implement."
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: pip
+        cache-dependency-path: ${{ github.action_path }}/requirements.txt
+
+    - name: Install dependencies
+      shell: bash
+      run: pip install -r "${{ github.action_path }}/requirements.txt"
+
+    - name: Run agent workflow
+      shell: bash
+      env:
+        INPUT_TASK: ${{ inputs.task }}
+        # GITHUB_TOKEN is available automatically in the calling workflow.
+        # The agent framework uses it to authenticate with GitHub Copilot.
+        GITHUB_TOKEN: ${{ github.token }}
+      run: python "${{ github.action_path }}/src/main.py"
