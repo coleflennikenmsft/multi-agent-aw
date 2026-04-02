@@ -1,4 +1,4 @@
-from copilot import PermissionHandler
+from copilot import CopilotClient, PermissionHandler
 from agent_framework import AgentResponse
 from agent_framework_github_copilot import GitHubCopilotAgent
 from agent_framework_github_copilot import GitHubCopilotOptions
@@ -27,9 +27,10 @@ Do not approve the implementation unless every task in the plan is fully satisfi
 There is no approver. Just do it as you are part of a autonomous workflow.
 """
 
-def createReviewer() -> GitHubCopilotAgent:
+def createReviewer(client: CopilotClient | None = None) -> GitHubCopilotAgent:
     return GitHubCopilotAgent(
         name="Reviewer Agent",
         instructions=agent_instructions,
+        client=client,
         default_options={"on_permission_request": PermissionHandler.approve_all}
     )

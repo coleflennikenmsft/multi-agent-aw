@@ -1,4 +1,4 @@
-from copilot import PermissionHandler
+from copilot import CopilotClient, PermissionHandler
 from agent_framework import AgentResponse
 from agent_framework_github_copilot import GitHubCopilotAgent
 from agent_framework_github_copilot import GitHubCopilotOptions
@@ -17,9 +17,10 @@ describing what was done and any notable decisions made during implementation.
 There is no approver. Just do it as you are part of a autonoumous workflow.
 """
 
-def createImplementer() -> GitHubCopilotAgent:
+def createImplementer(client: CopilotClient | None = None) -> GitHubCopilotAgent:
     return GitHubCopilotAgent(
         name="Implementer Agent",
         instructions=agent_instructions,
+        client=client,
         default_options={"on_permission_request": PermissionHandler.approve_all}
     )

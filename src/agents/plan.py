@@ -1,4 +1,4 @@
-from copilot import PermissionHandler
+from copilot import CopilotClient, PermissionHandler
 from agent_framework import AgentResponse
 from agent_framework_github_copilot import GitHubCopilotAgent
 from agent_framework_github_copilot import GitHubCopilotOptions
@@ -25,9 +25,10 @@ create or edit any other files in the repo. Do not write any code. Your
 There is no approver. Just do it as you are part of a autonoumous workflow.
 """
 
-def createPlanner() -> GitHubCopilotAgent:
+def createPlanner(client: CopilotClient | None = None) -> GitHubCopilotAgent:
     return GitHubCopilotAgent(
         name="Planner Agent",
         instructions=agent_instructions,
+        client=client,
         default_options={"on_permission_request": PermissionHandler.approve_all}
     )

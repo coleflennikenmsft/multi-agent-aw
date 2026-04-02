@@ -6,6 +6,7 @@ from typing_extensions import Never
 # Ensure src/ is on the path when running this file directly
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from copilot import CopilotClient
 from agent_framework import (
     Executor,
     WorkflowBuilder,
@@ -16,6 +17,17 @@ from agent_framework import (
 from agents.plan import createPlanner
 from agents.implement import createImplementer
 from agents.reviewer import createReviewer
+
+
+def _make_client() -> CopilotClient:
+    """Create a CopilotClient using GITHUB_TOKEN for auth when available (e.g. in CI).
+
+    Without an explicit token the SDK defaults to use_logged_in_user=True, which
+    triggers an interactive browser flow and hangs in non-TTY environments like
+    GitHub Actions.
+    """
+    token = os.environ.get("GITHUB_TOKEN")
+    return CopilotClient({"github_token": token} if token else None)
 
 # When running inside GitHub Actions, os.environ["GITHUB_ACTIONS"] == "true".
 _IN_ACTIONS = os.environ.get("GITHUB_ACTIONS") == "true"
@@ -79,13 +91,14 @@ async def _stream_agent(agent, message: str, label: str) -> str:
 class PlannerExecutor(Executor):
     """Runs the planner agent to produce an implementation plan, then hands off to the implementer."""
 
-    def __init__(self) -> None:
+    def __init__(self, client: CopilotClient) -> None:
         super().__init__(id="planner")
+        self._client = client
 
     @handler
     async def handle(self, task: str, ctx: WorkflowContext[str]) -> None:
         print("[Planner] Creating implementation plan...")
-        async with createPlanner() as agent:
+        async with createPlanner(self._client) as agent:
             result = await _stream_agent(agent, task, "Planner")
         print("[Planner] Plan created.")
         await ctx.send_message(result)
@@ -94,13 +107,14 @@ class PlannerExecutor(Executor):
 class ImplementerExecutor(Executor):
     """Executes the tasks in the plan, or addresses reviewer feedback if looping."""
 
-    def __init__(self) -> None:
+    def __init__(self, client: CopilotClient) -> None:
         super().__init__(id="implementer")
+        self._client = client
 
     @handler
     async def handle(self, message: str, ctx: WorkflowContext[str]) -> None:
         print("[Implementer] Executing tasks from plan...")
-        async with createImplementer() as agent:
+        async with createImplementer(self._client) as agent:
             result = await _stream_agent(agent, message, "Implementer")
         print("[Implementer] Implementation complete.")
         await ctx.send_message(result)
@@ -114,13 +128,14 @@ class ReviewerExecutor(Executor):
     - If the implementation is approved, ends the workflow via ctx.yield_output.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, client: CopilotClient) -> None:
         super().__init__(id="reviewer")
+        self._client = client
 
     @handler
     async def handle(self, message: str, ctx: WorkflowContext[str, str]) -> None:
         print("[Reviewer] Reviewing implementation...")
-        async with createReviewer() as agent:
+        async with createReviewer(self._client) as agent:
             review_text = await _stream_agent(agent, message, "Reviewer")
         print("[Reviewer] Review complete.")
 
@@ -135,7 +150,7 @@ class ReviewerExecutor(Executor):
             await ctx.yield_output(review_text)
 
 
-def build_workflow():
+def build_workflow(client: CopilotClient):
     """Construct and return the plan → implement → review workflow.
 
     The workflow DAG is:
@@ -143,9 +158,9 @@ def build_workflow():
                        ↑            |
                        └────────────┘  (loop when reviewer finds issues)
     """
-    planner = PlannerExecutor()
-    implementer = ImplementerExecutor()
-    reviewer = ReviewerExecutor()
+    planner = PlannerExecutor(client)
+    implementer = ImplementerExecutor(client)
+    reviewer = ReviewerExecutor(client)
 
     workflow = (
         WorkflowBuilder(start_executor=planner)
@@ -162,18 +177,22 @@ async def run_workflow(task: str) -> str:
 
     Returns the reviewer's final approval message.
     """
-    workflow = build_workflow()
+    client = _make_client()
+    try:
+        workflow = build_workflow(client)
 
-    print("\n=== Starting Plan-Implement-Review Workflow ===")
-    print(f"Task: {task}\n")
+        print("\n=== Starting Plan-Implement-Review Workflow ===")
+        print(f"Task: {task}\n")
 
-    result = ""
-    async for event in workflow.run(task, stream=True):
-        if event.type == "output" and isinstance(event.data, str):
-            result = event.data
+        result = ""
+        async for event in workflow.run(task, stream=True):
+            if event.type == "output" and isinstance(event.data, str):
+                result = event.data
 
-    print("\n=== Workflow Complete ===")
-    return result
+        print("\n=== Workflow Complete ===")
+        return result
+    finally:
+        await client.stop()
 
 
 if __name__ == "__main__":
