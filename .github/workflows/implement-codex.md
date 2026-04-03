@@ -12,7 +12,7 @@ engine:
 permissions:
   contents: read
   issues: read
-  pull-requests: read
+  pull-requests: write
 safe-outputs:
   create-pull-request:
     title-prefix: "[implement-codex] "
