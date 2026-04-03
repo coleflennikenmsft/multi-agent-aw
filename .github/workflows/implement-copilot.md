@@ -6,6 +6,9 @@ on:
         description: "The implementation plan to execute"
         required: true
         type: string
+engine:
+  id: copilot
+  model: gpt-4.1
 permissions:
   contents: read
   issues: read

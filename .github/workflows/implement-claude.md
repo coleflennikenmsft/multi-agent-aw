@@ -6,6 +6,9 @@ on:
         description: "The implementation plan to execute"
         required: true
         type: string
+engine:
+  id: copilot
+  model: claude-sonnet-4
 permissions:
   contents: read
   issues: read
