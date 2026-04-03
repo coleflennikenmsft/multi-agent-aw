@@ -20,14 +20,7 @@ from agents.reviewer import createReviewer
 
 
 def _make_client() -> CopilotClient:
-    """Create a CopilotClient using GITHUB_TOKEN for auth when available (e.g. in CI).
-
-    Without an explicit token the SDK defaults to use_logged_in_user=True, which
-    triggers an interactive browser flow and hangs in non-TTY environments like
-    GitHub Actions.
-    """
-    token = os.environ.get("GITHUB_TOKEN")
-    return CopilotClient({"github_token": token} if token else None)
+    return CopilotClient()
 
 # When running inside GitHub Actions, os.environ["GITHUB_ACTIONS"] == "true".
 _IN_ACTIONS = os.environ.get("GITHUB_ACTIONS") == "true"

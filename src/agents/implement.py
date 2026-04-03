@@ -21,6 +21,5 @@ def createImplementer(client: CopilotClient | None = None) -> GitHubCopilotAgent
     return GitHubCopilotAgent(
         name="Implementer Agent",
         instructions=agent_instructions,
-        client=client,
         default_options={"on_permission_request": PermissionHandler.approve_all}
     )

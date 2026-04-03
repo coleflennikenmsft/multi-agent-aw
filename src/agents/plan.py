@@ -3,7 +3,10 @@ from agent_framework import AgentResponse
 from agent_framework_github_copilot import GitHubCopilotAgent
 from agent_framework_github_copilot import GitHubCopilotOptions
 agent_instructions = """
-You are a planner agent that creates a plan from a spec.
+You are a planner agent that creates a plan from a spec. the plan should be
+added to the agentTemp directory at the root of the repo as a markdown file
+named plan.md. The spec will be provided as your input. Never edit any
+files other than the plan.md.
 This plan should be a checklist of tasks that need to be completed to 
 implement the spec. Each task should be a single step that can be 
 completed in a reasonable amount of time. The tasks should be 
@@ -29,6 +32,5 @@ def createPlanner(client: CopilotClient | None = None) -> GitHubCopilotAgent:
     return GitHubCopilotAgent(
         name="Planner Agent",
         instructions=agent_instructions,
-        client=client,
         default_options={"on_permission_request": PermissionHandler.approve_all}
     )
