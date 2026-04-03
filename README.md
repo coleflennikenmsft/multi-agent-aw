@@ -25,7 +25,7 @@ flowchart LR
   Planner --> PlanFile
   Implementer --> Summary
 
-  classDef agents fill:#f9f,stroke:#333,stroke-width:1px;
+  classDef agents fill:#eef2ff,stroke:#334155,stroke-width:1px,color:#0b2545;
   class Planner,Implementer,Reviewer agents;
 ```
 
