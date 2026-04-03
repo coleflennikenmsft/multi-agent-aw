@@ -26,7 +26,9 @@ You are an implementation agent. Your job is to take a plan and implement it by 
 
 ### Input
 
-The plan is provided as the workflow dispatch input. Read it carefully before starting.
+Here is the plan to implement:
+
+${{ github.event.inputs.plan }}
 
 ### Instructions
 
