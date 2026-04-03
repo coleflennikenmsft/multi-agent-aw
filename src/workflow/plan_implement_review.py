@@ -1,6 +1,8 @@
 import asyncio
+import logging
 import os
 import sys
+from typing import Optional, Dict, Any
 from typing_extensions import Never
 
 # Ensure src/ is on the path when running this file directly
@@ -17,6 +19,14 @@ from agent_framework import (
 from agents.plan import createPlanner
 from agents.implement import createImplementer
 from agents.reviewer import createReviewer
+
+# Import state management utilities
+try:
+    from state.context_manager import ContextManager
+except ImportError:
+    ContextManager = None
+
+logger = logging.getLogger(__name__)
 
 
 def _make_client() -> CopilotClient:
@@ -166,22 +176,55 @@ def build_workflow(client: CopilotClient):
     return workflow
 
 
-async def run_workflow(task: str) -> str:
+async def run_workflow(task: str, workflow_id: Optional[str] = None) -> str:
     """Run the plan-implement-review workflow for the given task description.
 
-    Returns the reviewer's final approval message.
+    Args:
+        task: Natural language task description
+        workflow_id: Optional workflow identifier for state management
+
+    Returns:
+        The reviewer's final approval message.
     """
     client = _make_client()
+    
+    # Initialize state manager if Azure is configured
+    state_manager: Optional[ContextManager] = None
+    if ContextManager is not None:
+        try:
+            state_manager = ContextManager()
+            if workflow_id:
+                logger.info(f"State management enabled for workflow: {workflow_id}")
+        except Exception as e:
+            logger.warning(f"State management not available: {e}")
+            state_manager = None
+    
     try:
         workflow = build_workflow(client)
 
         print("\n=== Starting Plan-Implement-Review Workflow ===")
         print(f"Task: {task}\n")
+        if state_manager and workflow_id:
+            print(f"Workflow ID: {workflow_id} (state management enabled)\n")
 
         result = ""
         async for event in workflow.run(task, stream=True):
             if event.type == "output" and isinstance(event.data, str):
                 result = event.data
+            
+            # Create state checkpoint on each event if state management is enabled
+            if state_manager and workflow_id:
+                try:
+                    context = {
+                        "task": task,
+                        "event_type": event.type,
+                        "timestamp": event.timestamp if hasattr(event, "timestamp") else None,
+                        "partial_result": result,
+                    }
+                    state_manager.save_state(workflow_id, context)
+                except Exception as e:
+                    logger.error(f"Failed to save state checkpoint: {e}")
+
 
         print("\n=== Workflow Complete ===")
         return result
