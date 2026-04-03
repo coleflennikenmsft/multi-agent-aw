@@ -12,7 +12,7 @@ engine:
 permissions:
   contents: read
   issues: read
-  pull-requests: write
+  pull-requests: read
 safe-outputs:
   create-pull-request:
     title-prefix: "[implement-copilot] "
