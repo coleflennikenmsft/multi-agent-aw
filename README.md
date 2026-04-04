@@ -36,6 +36,34 @@ Quick notes:
   `agentTemp/implementation_summary.md` when finished.
 - The `Reviewer` compares the plan and implementation; if incomplete it loops
   back to the implementer, otherwise it yields the final output.
+- **The reviewer enforces a maximum iteration limit (default: 5) to prevent
+  infinite loops.** If the limit is reached while tasks remain incomplete, the
+  workflow terminates with a warning message listing the incomplete tasks.
+
+## Configuration
+
+### Maximum Review Iterations
+
+The reviewer-implementer loop is limited to prevent infinite loops and excessive
+token consumption. By default, the reviewer will loop back to the implementer up
+to 5 times before terminating the workflow.
+
+You can customize this limit by setting the `MAX_REVIEW_ITERATIONS` environment
+variable:
+
+```bash
+export MAX_REVIEW_ITERATIONS=10
+python src/workflow/plan_implement_review.py "Implement the feature"
+```
+
+**Behavior when limit is reached:**
+- If the implementation is still incomplete after the maximum iterations, the
+  workflow terminates gracefully with a warning message.
+- The warning includes details about which tasks remain incomplete.
+- This prevents infinite loops while still providing visibility into what work
+  remains.
+
+## Usage
 
 Run the workflow locally:
 
