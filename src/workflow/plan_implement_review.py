@@ -120,27 +120,57 @@ class ReviewerExecutor(Executor):
     - If the implementation is incomplete, sends the feedback back to the
       implementer (looping) via ctx.send_message.
     - If the implementation is approved, ends the workflow via ctx.yield_output.
+    - Prevents infinite loops by limiting the number of review iterations.
     """
 
-    def __init__(self, client: CopilotClient) -> None:
+    def __init__(self, client: CopilotClient, max_iterations: int = 5) -> None:
         super().__init__(id="reviewer")
         self._client = client
+        self._max_iterations = max_iterations
+        self._iteration_count = 0
 
     @handler
     async def handle(self, message: str, ctx: WorkflowContext[str, str]) -> None:
-        print("[Reviewer] Reviewing implementation...")
+        self._iteration_count += 1
+        print(f"[Reviewer] Starting review iteration {self._iteration_count}/{self._max_iterations}...")
+        
+        # Warn when approaching max iterations
+        if self._iteration_count == self._max_iterations - 1:
+            print(f"[Reviewer] Warning: Approaching maximum iterations ({self._max_iterations}). Next iteration will be the last.")
+        
         async with createReviewer(self._client) as agent:
             review_text = await _stream_agent(agent, message, "Reviewer")
         print("[Reviewer] Review complete.")
 
         if "IMPLEMENTATION INCOMPLETE" in review_text:
-            print("[Reviewer] Issues found — sending back to implementer.")
-            await ctx.send_message(
-                "The reviewer found incomplete tasks. Please address the following "
-                "and continue implementing:\n\n" + review_text
-            )
+            if self._iteration_count >= self._max_iterations:
+                print(f"[Reviewer] Maximum iterations ({self._max_iterations}) reached. Implementation incomplete.")
+                print("[Reviewer] Stopping review cycle to prevent infinite loop.")
+                # Extract incomplete tasks for warning message
+                incomplete_tasks = []
+                lines = review_text.split('\n')
+                for line in lines:
+                    if line.strip().startswith('- [ ]') or 'incomplete' in line.lower() or 'missing' in line.lower():
+                        incomplete_tasks.append(line.strip())
+                
+                warning_message = (
+                    f"**Warning: Maximum review iterations ({self._max_iterations}) reached.**\n\n"
+                    f"The implementation remains incomplete after {self._iteration_count} review cycles. "
+                    "To prevent infinite loops and excessive token usage, the review process has been terminated.\n\n"
+                    "**Remaining issues:**\n" + 
+                    ('\n'.join(f"- {task}" for task in incomplete_tasks[:10]) if incomplete_tasks else "See reviewer feedback above.") +
+                    ("\n\n*Note: Only showing first 10 issues.*" if len(incomplete_tasks) > 10 else "") +
+                    f"\n\n**Original reviewer feedback:**\n{review_text}"
+                )
+                await ctx.yield_output(warning_message)
+            else:
+                print(f"[Reviewer] Issues found — sending back to implementer (iteration {self._iteration_count}/{self._max_iterations}).")
+                await ctx.send_message(
+                    "The reviewer found incomplete tasks. Please address the following "
+                    "and continue implementing:\n\n" + review_text
+                )
         else:
-            print("[Reviewer] Implementation approved.")
+            print(f"[Reviewer] Implementation approved after {self._iteration_count} iteration(s).")
             await ctx.yield_output(review_text)
 
 
@@ -152,9 +182,12 @@ def build_workflow(client: CopilotClient):
                        ↑            |
                        └────────────┘  (loop when reviewer finds issues)
     """
+    # Read max iterations from environment variable, default to 5
+    max_iterations = int(os.environ.get("MAX_REVIEW_ITERATIONS", "5"))
+    
     planner = PlannerExecutor(client)
     implementer = ImplementerExecutor(client)
-    reviewer = ReviewerExecutor(client)
+    reviewer = ReviewerExecutor(client, max_iterations=max_iterations)
 
     workflow = (
         WorkflowBuilder(start_executor=planner)
