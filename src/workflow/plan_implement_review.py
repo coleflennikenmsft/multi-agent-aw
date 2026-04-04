@@ -122,13 +122,36 @@ class ReviewerExecutor(Executor):
     - If the implementation is approved, ends the workflow via ctx.yield_output.
     """
 
-    def __init__(self, client: CopilotClient) -> None:
+    def __init__(self, client: CopilotClient, max_iterations: int = None) -> None:
         super().__init__(id="reviewer")
         self._client = client
+        env_max = os.environ.get("MAX_REVIEW_ITERATIONS")
+        if max_iterations is not None:
+            self._max_iterations = max_iterations
+        elif env_max is not None:
+            try:
+                self._max_iterations = int(env_max)
+            except Exception:
+                self._max_iterations = 5
+        else:
+            self._max_iterations = 5
+        self._iteration_count = 0
 
     @handler
     async def handle(self, message: str, ctx: WorkflowContext[str, str]) -> None:
-        print("[Reviewer] Reviewing implementation...")
+        self._iteration_count += 1
+        print(f"[Reviewer] Reviewing implementation... (iteration {self._iteration_count}/{self._max_iterations})")
+        if self._iteration_count > self._max_iterations:
+            warning = (
+                f"[Reviewer] Maximum review iterations ({self._max_iterations}) reached. "
+                "Some tasks may remain incomplete.\n"
+                f"Last review feedback:\n{message}"
+            )
+            print(warning)
+            await ctx.yield_output(warning)
+            return
+        if self._iteration_count == self._max_iterations:
+            print(f"[Reviewer] Warning: Approaching maximum review iterations ({self._max_iterations})!")
         async with createReviewer(self._client) as agent:
             review_text = await _stream_agent(agent, message, "Reviewer")
         print("[Reviewer] Review complete.")
@@ -154,7 +177,9 @@ def build_workflow(client: CopilotClient):
     """
     planner = PlannerExecutor(client)
     implementer = ImplementerExecutor(client)
-    reviewer = ReviewerExecutor(client)
+    # Pass max_iterations from environment if set
+    env_max = os.environ.get("MAX_REVIEW_ITERATIONS")
+    reviewer = ReviewerExecutor(client, max_iterations=int(env_max) if env_max is not None else None)
 
     workflow = (
         WorkflowBuilder(start_executor=planner)
