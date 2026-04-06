@@ -6,26 +6,14 @@ on:
     types: [opened, edited]
 permissions:
   contents: read
-  issues: read
-engine: copilot
-strict: true
 network:
   allowed:
     - defaults
     - github
-tools:
-  github:
-    toolsets:
-      - issues
-    min-integrity: approved
-  bash:
-    - "jq *"
 safe-outputs:
   add-labels:
-    max: 10
-timeout-minutes: 15
-features:
-  copilot-requests: true
+    max: 5
+timeout-minutes: 10
 ---
 
 # Auto-Triage Issues Agent
