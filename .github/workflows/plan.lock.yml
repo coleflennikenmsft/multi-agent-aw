@@ -22,7 +22,7 @@
 # For more information: https://github.github.com/gh-aw/introduction/overview/
 #
 #
-# frontmatter-hash: 55ce62877bbfcb3e7359e689c5bb075a28d1032db7121cb6070a13f661d73803
+# frontmatter-hash: 88c7654ef221ea433f091aa3cf77f4ae812f20480d8542460b72fd4c2325a1f7
 
 name: "Plan"
 "on":
@@ -86,7 +86,7 @@ jobs:
       slash_command: ${{ needs.pre_activation.outputs.matched_command }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.44.0
+        uses: github/gh-aw/actions/setup@cec1ecf3b97e9a1bbffaedf490a49ce03c1071ba # v0.44.0
         with:
           destination: /opt/gh-aw/actions
       - name: Check workflow file timestamps
@@ -137,7 +137,7 @@ jobs:
       secret_verification_result: ${{ steps.validate-secret.outputs.verification_result }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.44.0
+        uses: github/gh-aw/actions/setup@cec1ecf3b97e9a1bbffaedf490a49ce03c1071ba # v0.44.0
         with:
           destination: /opt/gh-aw/actions
       - name: Checkout repository
@@ -243,7 +243,7 @@ jobs:
           mkdir -p /tmp/gh-aw/safeoutputs
           mkdir -p /tmp/gh-aw/mcp-logs/safeoutputs
           cat > /opt/gh-aw/safeoutputs/config.json << 'GH_AW_SAFE_OUTPUTS_CONFIG_EOF'
-          {"dispatch_workflow":{"max":3,"workflow_files":{"implement-claude":".lock.yml","implement-codex":".lock.yml","implement-copilot":".lock.yml"},"workflows":["implement-copilot","implement-codex","implement-claude"]},"missing_data":{},"missing_tool":{},"noop":{"max":1},"update_issue":{"max":1}}
+          {"dispatch_workflow":{"max":3,"workflow_files":{"implement-gpt4.1":".lock.yml","implement-gpt5":".lock.yml","implement-sonnet":".lock.yml"},"workflows":["implement-gpt5","implement-gpt4.1","implement-sonnet"]},"missing_data":{},"missing_tool":{},"noop":{"max":1},"update_issue":{"max":1}}
           GH_AW_SAFE_OUTPUTS_CONFIG_EOF
           cat > /opt/gh-aw/safeoutputs/tools.json << 'GH_AW_SAFE_OUTPUTS_TOOLS_EOF'
           [
@@ -381,8 +381,8 @@ jobs:
               "name": "missing_data"
             },
             {
-              "_workflow_name": "implement-copilot",
-              "description": "Dispatch the 'implement-copilot' workflow with workflow_dispatch trigger. This workflow must support workflow_dispatch and be in .github/workflows/ directory in the same repository.",
+              "_workflow_name": "implement-gpt5",
+              "description": "Dispatch the 'implement-gpt5' workflow with workflow_dispatch trigger. This workflow must support workflow_dispatch and be in .github/workflows/ directory in the same repository.",
               "inputSchema": {
                 "additionalProperties": false,
                 "properties": {
@@ -396,11 +396,11 @@ jobs:
                 ],
                 "type": "object"
               },
-              "name": "implement_copilot"
+              "name": "implement_gpt5"
             },
             {
-              "_workflow_name": "implement-codex",
-              "description": "Dispatch the 'implement-codex' workflow with workflow_dispatch trigger. This workflow must support workflow_dispatch and be in .github/workflows/ directory in the same repository.",
+              "_workflow_name": "implement-gpt4.1",
+              "description": "Dispatch the 'implement-gpt4.1' workflow with workflow_dispatch trigger. This workflow must support workflow_dispatch and be in .github/workflows/ directory in the same repository.",
               "inputSchema": {
                 "additionalProperties": false,
                 "properties": {
@@ -414,11 +414,11 @@ jobs:
                 ],
                 "type": "object"
               },
-              "name": "implement_codex"
+              "name": "implement_gpt4.1"
             },
             {
-              "_workflow_name": "implement-claude",
-              "description": "Dispatch the 'implement-claude' workflow with workflow_dispatch trigger. This workflow must support workflow_dispatch and be in .github/workflows/ directory in the same repository.",
+              "_workflow_name": "implement-sonnet",
+              "description": "Dispatch the 'implement-sonnet' workflow with workflow_dispatch trigger. This workflow must support workflow_dispatch and be in .github/workflows/ directory in the same repository.",
               "inputSchema": {
                 "additionalProperties": false,
                 "properties": {
@@ -432,7 +432,7 @@ jobs:
                 ],
                 "type": "object"
               },
-              "name": "implement_claude"
+              "name": "implement_sonnet"
             }
           ]
           GH_AW_SAFE_OUTPUTS_TOOLS_EOF
@@ -911,7 +911,7 @@ jobs:
       total_count: ${{ steps.missing_tool.outputs.total_count }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.44.0
+        uses: github/gh-aw/actions/setup@cec1ecf3b97e9a1bbffaedf490a49ce03c1071ba # v0.44.0
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent output artifact
@@ -1016,7 +1016,7 @@ jobs:
       success: ${{ steps.parse_results.outputs.success }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.44.0
+        uses: github/gh-aw/actions/setup@cec1ecf3b97e9a1bbffaedf490a49ce03c1071ba # v0.44.0
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent artifacts
@@ -1127,7 +1127,7 @@ jobs:
       matched_command: ${{ steps.check_command_position.outputs.matched_command }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.44.0
+        uses: github/gh-aw/actions/setup@cec1ecf3b97e9a1bbffaedf490a49ce03c1071ba # v0.44.0
         with:
           destination: /opt/gh-aw/actions
       - name: Add eyes reaction for immediate feedback
@@ -1189,7 +1189,7 @@ jobs:
       process_safe_outputs_temporary_id_map: ${{ steps.process_safe_outputs.outputs.temporary_id_map }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@v0.44.0
+        uses: github/gh-aw/actions/setup@cec1ecf3b97e9a1bbffaedf490a49ce03c1071ba # v0.44.0
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent output artifact
@@ -1208,7 +1208,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"dispatch_workflow\":{\"max\":3,\"workflow_files\":{\"implement-claude\":\".lock.yml\",\"implement-codex\":\".lock.yml\",\"implement-copilot\":\".lock.yml\"},\"workflows\":[\"implement-copilot\",\"implement-codex\",\"implement-claude\"]},\"missing_data\":{},\"missing_tool\":{},\"update_issue\":{\"allow_body\":true,\"max\":1}}"
+          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"dispatch_workflow\":{\"max\":3,\"workflow_files\":{\"implement-gpt4.1\":\".lock.yml\",\"implement-gpt5\":\".lock.yml\",\"implement-sonnet\":\".lock.yml\"},\"workflows\":[\"implement-gpt5\",\"implement-gpt4.1\",\"implement-sonnet\"]},\"missing_data\":{},\"missing_tool\":{},\"update_issue\":{\"allow_body\":true,\"max\":1}}"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |

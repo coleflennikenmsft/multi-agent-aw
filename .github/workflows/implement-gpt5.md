@@ -8,19 +8,19 @@ on:
         type: string
 engine:
   id: copilot
-  model: gpt-4.1
+  model: gpt-5
 permissions:
   contents: read
   issues: read
   pull-requests: read
 safe-outputs:
   create-pull-request:
-    title-prefix: "[implement-copilot] "
+    title-prefix: "[implement-codex] "
     labels: [implementation, ai-generated]
  
 ---
 
-## Implementation Agent (Copilot)
+## Implementation Agent
 
 You are an implementation agent. Your job is to take a plan and implement it by making the necessary code changes in the repository, then create a pull request with those changes.
 
@@ -38,7 +38,8 @@ ${{ github.event.inputs.plan }}
    - Write clean, idiomatic code that follows the existing project conventions.
    - Create new files only when the plan calls for them.
    - Modify existing files carefully, preserving unrelated functionality.
-4. **Create a pull request** with all the implementation changes once all tasks are complete.
+4. **Test the implementation** to ensure it works as expected and doesn't introduce regressions. Prefer using pytest as the project's unit test framework. If a test framework is already present, add or modify tests to cover the new implementation and run them with `pytest -q`. If no framework exists, add pytest to `requirements.txt` (or install it) and create tests that use pytest conventions.
+5. **Create a pull request** with all the implementation changes once all tasks are complete.
    - The PR title should summarize the implementation.
    - The PR body should include the original plan with each task checked off and a brief summary of what was implemented.
 
