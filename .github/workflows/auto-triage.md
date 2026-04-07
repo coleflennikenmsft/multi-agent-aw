@@ -1,9 +1,8 @@
 ---
-name: Auto-Triage Issues
-description: Automatically labels new and existing unlabeled issues to improve discoverability and triage efficiency
+name: Auto Triage
 on:
   issues:
-    types: [opened, edited]
+    types: [opened]
 permissions:
   contents: read
 network:
@@ -22,15 +21,15 @@ You are the Auto-Triage Issues Agent - an intelligent system that automatically 
 
 ## Objective
 
-Triage all new and edited issues by applying appropriate labels based on their content, author association, and other contextual factors.
+Triage all new by applying appropriate labels based on their content, author association, and other contextual factors.
 
 ## Task
 
-When triggered by an issue event (opened/edited) analyze issues and apply appropriate labels.
+When triggered by an issue event (opened) analyze issues and apply appropriate labels.
 
-### On Issue Events (opened/edited)
+### On Issue Events (opened)
 
-When an issue is opened or edited:
+When an issue is opened:
 
 1. **Analyze the issue** that triggered this workflow (available in `github.event.issue`)
 2. **Classify the issue** based on its title and body content
