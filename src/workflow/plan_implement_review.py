@@ -114,31 +114,48 @@ class ImplementerExecutor(Executor):
         await ctx.send_message(result)
 
 
+MAX_REVIEW_ITERATIONS = 5
+
+
 class ReviewerExecutor(Executor):
     """Reviews the implementation against the plan.
 
     - If the implementation is incomplete, sends the feedback back to the
       implementer (looping) via ctx.send_message.
     - If the implementation is approved, ends the workflow via ctx.yield_output.
+    - Stops looping after MAX_REVIEW_ITERATIONS to prevent an infinite loop.
     """
 
     def __init__(self, client: CopilotClient) -> None:
         super().__init__(id="reviewer")
         self._client = client
+        self._iteration = 0
 
     @handler
     async def handle(self, message: str, ctx: WorkflowContext[str, str]) -> None:
-        print("[Reviewer] Reviewing implementation...")
+        self._iteration += 1
+        print(f"[Reviewer] Reviewing implementation (attempt {self._iteration}/{MAX_REVIEW_ITERATIONS})...")
         async with createReviewer(self._client) as agent:
             review_text = await _stream_agent(agent, message, "Reviewer")
         print("[Reviewer] Review complete.")
 
         if "IMPLEMENTATION INCOMPLETE" in review_text:
-            print("[Reviewer] Issues found — sending back to implementer.")
-            await ctx.send_message(
-                "The reviewer found incomplete tasks. Please address the following "
-                "and continue implementing:\n\n" + review_text
-            )
+            if self._iteration >= MAX_REVIEW_ITERATIONS:
+                print(
+                    f"[Reviewer] Maximum review iterations ({MAX_REVIEW_ITERATIONS}) reached. "
+                    "Stopping workflow to prevent infinite loop."
+                )
+                await ctx.yield_output(
+                    f"Workflow stopped after {MAX_REVIEW_ITERATIONS} review iterations. "
+                    "The implementation was not fully approved. Last reviewer feedback:\n\n"
+                    + review_text
+                )
+            else:
+                print("[Reviewer] Issues found — sending back to implementer.")
+                await ctx.send_message(
+                    "The reviewer found incomplete tasks. Please address the following "
+                    "and continue implementing:\n\n" + review_text
+                )
         else:
             print("[Reviewer] Implementation approved.")
             await ctx.yield_output(review_text)
