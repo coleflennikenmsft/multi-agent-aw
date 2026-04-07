@@ -1,6 +1,6 @@
 ---
-name: Auto-Triage Issues
-description: Automatically labels new and existing unlabeled issues to improve discoverability and triage efficiency
+name: Auto-Triage Agent
+description: Automatically triage and label GitHub issues based on their content to improve discoverability and reduce manual triage workload.
 on:
   issues:
     types: [opened, edited]
