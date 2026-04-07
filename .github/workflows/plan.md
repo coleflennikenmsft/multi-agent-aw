@@ -10,7 +10,6 @@ engine:
   id: copilot
   model: claude-sonnet-4
 safe-outputs:
-  update-issue:
   dispatch-workflow:
     workflows: [implement-gpt5, implement-gpt4.1, implement-sonnet]
     max: 3
