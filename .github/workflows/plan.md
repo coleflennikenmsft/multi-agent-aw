@@ -1,14 +1,17 @@
 ---
+name: Plan
 on:
   slash_command:
     name: build
 permissions:
   contents: read
   issues: read
+engine:
+  id: copilot
+  model: claude-sonnet-4
 safe-outputs:
   update-issue:
-    body:
-  dispatch-workflow: 
+  dispatch-workflow:
     workflows: [implement-gpt5, implement-gpt4.1, implement-sonnet]
     max: 3
 ---
