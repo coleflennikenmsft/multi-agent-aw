@@ -158,7 +158,7 @@ jobs:
       - name: Check workflow lock file
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          GH_AW_WORKFLOW_FILE: "plan.lock.yml"
+          GH_AW_WORKFLOW_FILE: "plan copy.lock.yml"
           GH_AW_CONTEXT_WORKFLOW_REF: "${{ github.workflow_ref }}"
         with:
           script: |
@@ -261,7 +261,7 @@ jobs:
           fi
           cat << 'GH_AW_PROMPT_f9a9a7ffd02bb808_EOF'
           </system>
-          {{#runtime-import .github/workflows/plan.md}}
+          {{#runtime-import .github/workflows/plan copy.md}}
           GH_AW_PROMPT_f9a9a7ffd02bb808_EOF
           } > "$GH_AW_PROMPT"
       - name: Interpolate variables and render templates
@@ -353,7 +353,7 @@ jobs:
       GH_AW_ASSETS_BRANCH: ""
       GH_AW_ASSETS_MAX_SIZE_KB: 0
       GH_AW_MCP_LOG_DIR: /tmp/gh-aw/mcp-logs/safeoutputs
-      GH_AW_WORKFLOW_ID_SANITIZED: plan
+      GH_AW_WORKFLOW_ID_SANITIZED: plan copy
     outputs:
       checkout_pr_success: ${{ steps.checkout-pr.outputs.checkout_pr_success || 'true' }}
       effective_tokens: ${{ steps.parse-mcp-gateway.outputs.effective_tokens }}
@@ -966,7 +966,7 @@ jobs:
       contents: read
       issues: write
     concurrency:
-      group: "gh-aw-conclusion-plan"
+      group: "gh-aw-conclusion-plan copy"
       cancel-in-progress: false
     outputs:
       incomplete_count: ${{ steps.report_incomplete.outputs.incomplete_count }}
@@ -1049,7 +1049,7 @@ jobs:
           GH_AW_WORKFLOW_NAME: "Plan"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
-          GH_AW_WORKFLOW_ID: "plan"
+          GH_AW_WORKFLOW_ID: "plan copy"
           GH_AW_ENGINE_ID: "copilot"
           GH_AW_SECRET_VERIFICATION_RESULT: ${{ needs.activation.outputs.secret_verification_result }}
           GH_AW_CHECKOUT_PR_SUCCESS: ${{ needs.agent.outputs.checkout_pr_success }}
@@ -1285,11 +1285,11 @@ jobs:
       issues: write
     timeout-minutes: 15
     env:
-      GH_AW_CALLER_WORKFLOW_ID: "${{ github.repository }}/plan"
+      GH_AW_CALLER_WORKFLOW_ID: "${{ github.repository }}/plan copy"
       GH_AW_EFFECTIVE_TOKENS: ${{ needs.agent.outputs.effective_tokens }}
       GH_AW_ENGINE_ID: "copilot"
       GH_AW_ENGINE_MODEL: ${{ needs.agent.outputs.model }}
-      GH_AW_WORKFLOW_ID: "plan"
+      GH_AW_WORKFLOW_ID: "plan copy"
       GH_AW_WORKFLOW_NAME: "Plan"
     outputs:
       code_push_failure_count: ${{ steps.process_safe_outputs.outputs.code_push_failure_count }}
