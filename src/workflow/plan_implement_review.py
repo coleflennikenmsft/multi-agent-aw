@@ -17,6 +17,7 @@ from agent_framework import (
 from agents.plan import createPlanner
 from agents.implement import createImplementer
 from agents.reviewer import createReviewer
+from agents.tester import createTester
 
 
 def _make_client() -> CopilotClient:
@@ -119,7 +120,7 @@ class ReviewerExecutor(Executor):
 
     - If the implementation is incomplete, sends the feedback back to the
       implementer (looping) via ctx.send_message.
-    - If the implementation is approved, ends the workflow via ctx.yield_output.
+    - If the implementation is approved, sends the review to the tester.
     """
 
     def __init__(self, client: CopilotClient) -> None:
@@ -140,42 +141,75 @@ class ReviewerExecutor(Executor):
                 "and continue implementing:\n\n" + review_text
             )
         else:
-            print("[Reviewer] Implementation approved.")
-            await ctx.yield_output(review_text)
+            print("[Reviewer] Implementation approved. Forwarding to tester.")
+            await ctx.send_message(review_text)
+
+class TesterExecutor(Executor):
+    """Runs the tester agent to validate implementation by running tests.
+
+    - If tests fail, sends the failure details back to the implementer (looping).
+    - If tests pass, ends the workflow via ctx.yield_output.
+    """
+    def __init__(self, client: CopilotClient) -> None:
+        super().__init__(id="tester")
+        self._client = client
+
+    @handler
+    async def handle(self, message: str, ctx: WorkflowContext[str, str]) -> None:
+        print("[Tester] Running tests...")
+        async with createTester(self._client) as agent:
+            test_text = await _stream_agent(agent, message, "Tester")
+        print("[Tester] Test run complete.")
+
+        if "TESTS FAILED" in test_text:
+            print("[Tester] Tests failed — sending back to implementer.")
+            await ctx.send_message(
+                "The tester found failing tests. Please address the following and continue implementing:\n\n" + test_text
+            )
+        else:
+            print("[Tester] All tests passed.")
+            await ctx.yield_output(test_text)
 
 
 def build_workflow(client: CopilotClient):
-    """Construct and return the plan → implement → review workflow.
+    """Construct and return the plan → implement → review → tester workflow.
 
     The workflow DAG is:
         planner → implementer → reviewer
                        ↑            |
                        └────────────┘  (loop when reviewer finds issues)
+                            ↓
+                        tester
+                       ↑    |
+                       └────┘  (loop when tests fail)
     """
     planner = PlannerExecutor(client)
     implementer = ImplementerExecutor(client)
     reviewer = ReviewerExecutor(client)
+    tester = TesterExecutor(client)
 
     workflow = (
         WorkflowBuilder(start_executor=planner)
         .add_edge(planner, implementer)
         .add_edge(implementer, reviewer)
         .add_edge(reviewer, implementer)   # loop back when incomplete
+        .add_edge(reviewer, tester)        # forward to tester on approval
+        .add_edge(tester, implementer)     # loop back if tests fail
         .build()
     )
     return workflow
 
 
 async def run_workflow(task: str) -> str:
-    """Run the plan-implement-review workflow for the given task description.
+    """Run the plan-implement-review-test workflow for the given task description.
 
-    Returns the reviewer's final approval message.
+    Returns the tester's final success message.
     """
     client = _make_client()
     try:
         workflow = build_workflow(client)
 
-        print("\n=== Starting Plan-Implement-Review Workflow ===")
+        print("\n=== Starting Plan-Implement-Review-Test Workflow ===")
         print(f"Task: {task}\n")
 
         result = ""
