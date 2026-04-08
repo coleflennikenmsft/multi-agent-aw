@@ -1,0 +1,16 @@
+name: Intentional Failure
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fail-on-purpose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Intentionally fail
+        run: |
+          echo "This workflow fails on purpose to test CI Failure Doctor"
+          exit 1

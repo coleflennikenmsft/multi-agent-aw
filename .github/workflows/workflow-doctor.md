@@ -5,7 +5,7 @@ on:
     # GitHub requires explicit workflow names here; wildcards are not supported.
     # Watch every other workflow in this repo, but exclude CI Failure Doctor itself
     # to avoid recursive workflow_run triggers when the doctor fails.
-    workflows: ["Plan", "Bug Triage", "Implement Gpt5", "Implement Gpt4.1", "Implement Sonnet", "Agentic Maintenance"]
+    workflows: ["Plan", "Bug Triage", "Implement Gpt5", "Implement Gpt4.1", "Implement Sonnet", "Agentic Maintenance", "Intentional Failure"]
     types: [completed]
     branches:
       - main
