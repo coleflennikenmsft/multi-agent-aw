@@ -2,6 +2,16 @@
 description: Investigates failed CI workflows to identify root causes and patterns, creating issues with diagnostic information
 on:
   workflow_run:
+    # GitHub requires explicit workflow names here; wildcards are not supported.
+    # Watch every other workflow in this repo, but exclude CI Failure Doctor itself
+    # to avoid recursive workflow_run triggers when the doctor fails.
+    workflows:
+      - Auto Triage
+      - Plan
+      - Implement Gpt5
+      - Implement Gpt4.1
+      - Implement Sonnet
+      - Agentic Maintenance
     types:
       - completed
     branches:
@@ -40,7 +50,6 @@ safe-outputs:
 tools:
   cache-memory: true
   web-fetch:
-  web-search:
   github:
     toolsets: [default, actions]  # default: context, repos, issues, pull_requests; actions: workflow logs and artifacts
 
