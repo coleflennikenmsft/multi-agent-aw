@@ -26,6 +26,22 @@ def _make_client() -> CopilotClient:
 _IN_ACTIONS = os.environ.get("GITHUB_ACTIONS") == "true"
 
 
+def _get_max_review_retries() -> int:
+    raw = os.environ.get("MAX_REVIEW_RETRIES", "5")
+    try:
+        value = int(raw)
+    except ValueError:
+        print(
+            f"[Workflow] Invalid MAX_REVIEW_RETRIES={raw!r}; falling back to 5.",
+            flush=True,
+        )
+        return 5
+    return max(1, value)
+
+
+_MAX_REVIEW_RETRIES = _get_max_review_retries()
+
+
 def _group(title: str) -> None:
     if _IN_ACTIONS:
         print(f"::group::{title}", flush=True)
@@ -125,6 +141,7 @@ class ReviewerExecutor(Executor):
     def __init__(self, client: CopilotClient) -> None:
         super().__init__(id="reviewer")
         self._client = client
+        self._incomplete_reviews = 0
 
     @handler
     async def handle(self, message: str, ctx: WorkflowContext[str, str]) -> None:
@@ -134,12 +151,24 @@ class ReviewerExecutor(Executor):
         print("[Reviewer] Review complete.")
 
         if "IMPLEMENTATION INCOMPLETE" in review_text:
+            self._incomplete_reviews += 1
+            if self._incomplete_reviews >= _MAX_REVIEW_RETRIES:
+                print(
+                    "[Reviewer] Max review retries reached — ending workflow as incomplete."
+                )
+                await ctx.yield_output(
+                    "IMPLEMENTATION INCOMPLETE — Max review retries reached.\n\n"
+                    + review_text
+                )
+                return
+
             print("[Reviewer] Issues found — sending back to implementer.")
             await ctx.send_message(
                 "The reviewer found incomplete tasks. Please address the following "
                 "and continue implementing:\n\n" + review_text
             )
         else:
+            self._incomplete_reviews = 0
             print("[Reviewer] Implementation approved.")
             await ctx.yield_output(review_text)
 
