@@ -45,6 +45,7 @@ tools:
   cache-memory: true
   web-fetch:
   web-search:
+  agentic-workflows:
   github:
     toolsets: [default, actions]  # default: context, repos, issues, pull_requests; actions: workflow logs and artifacts
 
