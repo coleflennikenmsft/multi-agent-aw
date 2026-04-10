@@ -20,7 +20,11 @@ permissions:
   issues: read         # To search and analyze issues
   pull-requests: read  # To analyze pull request context
 
-network: defaults
+
+network:
+  allowed:
+    - defaults
+    - github
 
 engine:
   id: copilot
