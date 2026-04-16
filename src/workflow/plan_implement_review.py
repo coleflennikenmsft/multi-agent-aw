@@ -16,6 +16,7 @@ from agent_framework import (
 
 from agents.plan import createPlanner
 from agents.implement import createImplementer
+from agents.testing import createTester
 from agents.reviewer import createReviewer
 
 
@@ -114,6 +115,35 @@ class ImplementerExecutor(Executor):
         await ctx.send_message(result)
 
 
+class TesterExecutor(Executor):
+    """Runs tests against the implemented code.
+
+    - If tests fail, sends feedback back to the implementer (looping) via ctx.send_message.
+    - If tests pass, forwards results to the reviewer via ctx.send_message.
+    """
+
+    def __init__(self, client: CopilotClient) -> None:
+        super().__init__(id="tester")
+        self._client = client
+
+    @handler
+    async def handle(self, message: str, ctx: WorkflowContext[str]) -> None:
+        print("[Tester] Running tests against implementation...")
+        async with createTester(self._client) as agent:
+            result = await _stream_agent(agent, message, "Tester")
+        print("[Tester] Testing complete.")
+
+        if "TESTS FAILED" in result:
+            print("[Tester] Tests failed — sending back to implementer.")
+            await ctx.send_message(
+                "The tester found failing tests. Please fix the issues and re-implement "
+                "as needed:\n\n" + result
+            )
+        else:
+            print("[Tester] Tests passed — forwarding to reviewer.")
+            await ctx.send_message(result)
+
+
 class ReviewerExecutor(Executor):
     """Reviews the implementation against the plan.
 
@@ -145,22 +175,29 @@ class ReviewerExecutor(Executor):
 
 
 def build_workflow(client: CopilotClient):
-    """Construct and return the plan → implement → review workflow.
+    """Construct and return the plan → implement → test → review workflow.
 
     The workflow DAG is:
-        planner → implementer → reviewer
-                       ↑            |
-                       └────────────┘  (loop when reviewer finds issues)
+        planner → implementer → tester → reviewer
+                       ↑           |         |
+                       └───────────┘         |
+                       (loop on test fail)   |
+                       ↑                     |
+                       └─────────────────────┘
+                       (loop when reviewer finds issues)
     """
     planner = PlannerExecutor(client)
     implementer = ImplementerExecutor(client)
+    tester = TesterExecutor(client)
     reviewer = ReviewerExecutor(client)
 
     workflow = (
         WorkflowBuilder(start_executor=planner)
         .add_edge(planner, implementer)
-        .add_edge(implementer, reviewer)
-        .add_edge(reviewer, implementer)   # loop back when incomplete
+        .add_edge(implementer, tester)
+        .add_edge(tester, implementer)    # loop back when tests fail
+        .add_edge(tester, reviewer)
+        .add_edge(reviewer, implementer)  # loop back when reviewer finds issues
         .build()
     )
     return workflow
